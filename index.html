@@ -100,7 +100,7 @@
 <main>
   <h1>🥬 My Fridge</h1>
   <div class="sub" id="summary"></div>
-  <input type="search" class="searchbox" id="search" placeholder="🔍 Search your food (name, 中文, note…)" autocomplete="off">
+  <input type="search" class="searchbox" id="search" placeholder="🔍 Search food, store, date…" autocomplete="off">
   <button class="reviewbar" id="reviewBar" hidden></button>
   <div class="chips" id="chips"></div>
   <div id="list"></div>
@@ -147,8 +147,10 @@
     </div>
     <div class="two">
       <label>Bought on <input id="fBought" type="date" required></label>
-      <label>Good for (days) <input id="fShelf" type="number" min="1" required></label>
+      <label>Bought at <input id="fStore" list="stores" autocomplete="off" placeholder="e.g. B-Trust"></label>
     </div>
+    <datalist id="stores"></datalist>
+    <label>Good for (days) <input id="fShelf" type="number" min="1" required></label>
     <div class="two">
       <label>Quantity <input id="fQty" type="number" min="1" value="1"></label>
       <label>Notes (optional) <input id="fNote" autocomplete="off" placeholder="e.g. opened"></label>
@@ -240,10 +242,11 @@ const amtLabel = v => (AMTS.find(a => a.v === v) || { label: `${Math.round(v * 1
 
 // ---------- sample data from the Oct 24 B-Trust receipt ----------
 const RECEIPT_DATE = '2026-10-24';
+const RECEIPT_STORE = 'B-Trust Supermarket';
 function sampleItems() {
   const mk = (name, zh, loc, shelf, qty = 1) => {
     const cat = guessCat(name);
-    return { id: uid(), name, zh, loc, shelf, qty, bought: RECEIPT_DATE, note: '', cat, emoji: guessEmoji(name, cat), amt: 1 };
+    return { id: uid(), name, zh, loc, shelf, qty, bought: RECEIPT_DATE, store: RECEIPT_STORE, note: '', cat, emoji: guessEmoji(name, cat), amt: 1 };
   };
   return [
     mk('Tong Ho (small leaf)', '塘蒿', 'fridge', 4),
@@ -288,6 +291,7 @@ function migrate(s) {
     if (!it.cat || !CAT[it.cat]) it.cat = guessCat(it.name);
     if (!it.emoji) it.emoji = guessEmoji(it.name, it.cat);
     if (typeof it.amt !== 'number') it.amt = 1;
+    if (!it.store && it.bought === RECEIPT_DATE) it.store = RECEIPT_STORE;   // the first receipt
   });
   return s;
 }
@@ -313,6 +317,8 @@ function info(it) {
   else { level = 'ok'; label = `${left} days left`; short = `${left}d`; }
   return { age, left, level, label, short };
 }
+const fmtDate = iso => { const [y, m, d] = iso.split('-').map(Number); return new Date(y, m - 1, d).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }); };
+const boughtText = it => `Bought ${fmtDate(it.bought)}${it.store ? ' at ' + esc(it.store) : ''}`;
 const ageText = age => age <= 0 ? 'bought today' : age === 1 ? 'bought yesterday' : `bought ${age} days ago`;
 const LOC = { fridge: 'Fridge', freezer: 'Freezer', counter: 'Counter' };
 const isSoon = x => x.it.loc !== 'freezer' && x.left <= 2;
@@ -337,7 +343,7 @@ function render() {
   let html = '';
   const q = query.trim().toLowerCase();
   if (q) {
-    const hit = x => [x.it.name, x.it.zh, x.it.note, CAT[x.it.cat].label, LOC[x.it.loc]].join(' ').toLowerCase().includes(q);
+    const hit = x => [x.it.name, x.it.zh, x.it.note, x.it.store, x.it.bought, fmtDate(x.it.bought), CAT[x.it.cat].label, LOC[x.it.loc]].join(' ').toLowerCase().includes(q);
     const shown = items.filter(hit);
     html = shown.length
       ? `<h2>Results <span>(${shown.length})</span></h2><div class="grid">${shown.map(tile).join('')}</div>`
@@ -383,7 +389,8 @@ function renderSheet() {
       <div>
         <div class="sname">${esc(it.name)}${it.qty > 1 ? ` ×${it.qty}` : ''}</div>
         ${it.zh ? `<div class="meta">${esc(it.zh)}</div>` : ''}
-        <div class="meta">${CAT[it.cat].emoji} ${CAT[it.cat].label} · ${LOC[it.loc]} · ${ageText(age)}${it.note ? ' · ' + esc(it.note) : ''}</div>
+        <div class="meta">${CAT[it.cat].emoji} ${CAT[it.cat].label} · ${LOC[it.loc]}${it.note ? ' · ' + esc(it.note) : ''}</div>
+        <div class="meta">🛒 ${boughtText(it)} (${ageText(age).replace('bought ', '')})</div>
         <span class="badge big ${level}">${label}</span>
       </div>
     </div>
@@ -438,7 +445,7 @@ function renderReview(done, total) {
       <div class="thumb">${thumbHTML(it)}</div>
       <div>
         <div class="sname">${esc(it.name)}${it.zh ? ` <span class="meta">${esc(it.zh)}</span>` : ''}</div>
-        <div class="meta">${LOC[it.loc]} · ${ageText(age)} · ${amtLabel(it.amt)}</div>
+        <div class="meta">${LOC[it.loc]} · ${boughtText(it)} · ${amtLabel(it.amt)}</div>
         <span class="badge big bad">${label}</span>
       </div>
     </div>
@@ -510,6 +517,8 @@ function openForm(id) {
   $('fEmoji').value = it?.emoji ?? '🛒';
   $('fQty').value = it?.qty ?? 1;
   $('fBought').value = it?.bought ?? isoDate(new Date());
+  $('fStore').value = it ? (it.store ?? '') : (state.lastStore ?? '');
+  $('stores').innerHTML = [...new Set(state.items.map(i => i.store).filter(Boolean))].map(n => `<option value="${esc(n)}">`).join('');
   $('fShelf').value = it?.shelf ?? '';
   $('fNote').value = it?.note ?? '';
   formPhoto = it?.photo || null;
@@ -550,7 +559,7 @@ $('form').onsubmit = () => {
   const data = {
     name: $('fName').value.trim(), zh: $('fZh').value.trim(), cat: $('fCat').value, loc: $('fLoc').value,
     emoji: $('fEmoji').value.trim() || CAT[$('fCat').value].emoji, photo: formPhoto || undefined,
-    qty: Math.max(1, +$('fQty').value || 1), bought: $('fBought').value,
+    qty: Math.max(1, +$('fQty').value || 1), bought: $('fBought').value, store: $('fStore').value.trim(),
     shelf: Math.max(1, +$('fShelf').value || 1), note: $('fNote').value.trim(),
   };
   if (editingId) {
@@ -558,6 +567,7 @@ $('form').onsubmit = () => {
     Object.assign(it, data);
     if (!data.photo) delete it.photo;
   } else state.items.push({ id: uid(), amt: 1, ...data });
+  if (data.store) state.lastStore = data.store;   // next new item defaults to the same shop
   save(); render();
 };
 
