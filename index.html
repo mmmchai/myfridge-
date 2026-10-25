@@ -1,0 +1,381 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#2f7d5b">
+<link rel="manifest" href="manifest.webmanifest">
+<title>My Fridge</title>
+<style>
+  :root {
+    --bg: #f6f5f1; --card: #fff; --ink: #1f2a24; --muted: #6b7770; --line: #e4e2da;
+    --accent: #2f7d5b; --accent-ink: #fff;
+    --bad: #c0392b; --bad-bg: #fbe9e6;
+    --warn: #b36b00; --warn-bg: #fff1d6;
+    --ok: #2f7d5b; --ok-bg: #e3f2ea;
+    --cold: #2b6cb0; --cold-bg: #e5eefa;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #141916; --card: #1d2420; --ink: #e8eee9; --muted: #98a59d; --line: #2c3631;
+      --accent: #4fb788; --accent-ink: #0d1a13;
+      --bad: #ff8f80; --bad-bg: #3a1f1b;
+      --warn: #f0b65a; --warn-bg: #3a2c12;
+      --ok: #6fd1a0; --ok-bg: #173226;
+      --cold: #84b6ee; --cold-bg: #16273b;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+    font: 16px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans SC", sans-serif; }
+  main { max-width: 640px; margin: 0 auto; padding: 16px; padding-bottom: 96px; }
+  header { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 12px; }
+  h1 { font-size: 1.5rem; margin: 0; }
+  .sub { color: var(--muted); font-size: .875rem; }
+  h2 { font-size: .8rem; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 24px 0 8px; }
+  .tabs { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; }
+  .tab { border: 1px solid var(--line); background: var(--card); color: var(--ink); border-radius: 999px;
+    padding: 6px 14px; font: inherit; font-size: .9rem; white-space: nowrap; cursor: pointer; }
+  .tab[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  .item { background: var(--card); border: 1px solid var(--line); border-left-width: 5px; border-radius: 10px;
+    padding: 10px 12px; margin-bottom: 8px; display: grid; gap: 8px; }
+  .top { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
+  .item.bad { border-left-color: var(--bad); } .item.warn { border-left-color: var(--warn); }
+  .item.ok { border-left-color: var(--ok); } .item.cold { border-left-color: var(--cold); }
+  .info { flex: 1; min-width: 0; }
+  .name { font-weight: 600; overflow-wrap: anywhere; }
+  .name small { font-weight: 400; color: var(--muted); margin-left: 4px; }
+  .meta { color: var(--muted); font-size: .85rem; }
+  .badge { font-size: .78rem; font-weight: 600; border-radius: 999px; padding: 2px 9px; white-space: nowrap; }
+  .badge.bad { background: var(--bad-bg); color: var(--bad); } .badge.warn { background: var(--warn-bg); color: var(--warn); }
+  .badge.ok { background: var(--ok-bg); color: var(--ok); } .badge.cold { background: var(--cold-bg); color: var(--cold); }
+    button { font: inherit; cursor: pointer; }
+  .btn { border: 1px solid var(--line); background: var(--card); color: var(--ink); border-radius: 8px; padding: 6px 12px; font-size: .85rem; }
+  .btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  .btn.danger { color: var(--bad); }
+  .row { display: flex; gap: 6px; flex-wrap: wrap; }
+  .empty { text-align: center; color: var(--muted); padding: 32px 0; }
+  .fab { position: fixed; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom)); width: 56px; height: 56px;
+    border-radius: 50%; border: 0; background: var(--accent); color: var(--accent-ink); font-size: 2rem; line-height: 1;
+    box-shadow: 0 4px 14px rgba(0,0,0,.25); }
+  dialog { border: 0; border-radius: 14px; padding: 0; width: min(92vw, 420px); background: var(--card); color: var(--ink); }
+  dialog::backdrop { background: rgba(0,0,0,.45); }
+  form { padding: 18px; display: grid; gap: 12px; }
+  label { display: grid; gap: 4px; font-size: .85rem; color: var(--muted); }
+  input, select { font: inherit; padding: 9px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); width: 100%; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .foot { color: var(--muted); font-size: .8rem; text-align: center; margin-top: 28px; }
+  .foot button { background: none; border: 0; color: var(--accent); text-decoration: underline; padding: 4px; font-size: .8rem; }
+  #toast { position: fixed; left: 50%; bottom: 88px; transform: translateX(-50%); background: var(--ink); color: var(--bg);
+    padding: 10px 16px; border-radius: 10px; font-size: .9rem; display: none; gap: 12px; align-items: center; }
+  #toast button { background: none; border: 0; color: inherit; text-decoration: underline; font: inherit; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div>
+      <h1>🥬 My Fridge</h1>
+      <div class="sub" id="summary"></div>
+    </div>
+  </header>
+
+  <div class="tabs" id="tabs"></div>
+  <div id="list"></div>
+
+  <div class="foot">
+    <div id="stats"></div>
+    <button id="exportBtn">Export backup</button> ·
+    <button id="importBtn">Import backup</button> ·
+    <button id="resetBtn">Reload sample groceries</button>
+    <input type="file" id="importFile" accept="application/json" hidden>
+  </div>
+</main>
+
+<button class="fab" id="addBtn" aria-label="Add item">+</button>
+<div id="toast" role="status"><span id="toastMsg"></span><button id="toastUndo">Undo</button></div>
+
+<dialog id="dlg">
+  <form method="dialog" id="form">
+    <strong id="dlgTitle">Add item</strong>
+    <label>Name <input id="fName" required autocomplete="off" placeholder="e.g. Milk"></label>
+    <label>Chinese name (optional) <input id="fZh" autocomplete="off"></label>
+    <div class="two">
+      <label>Where
+        <select id="fLoc"><option value="fridge">Fridge</option><option value="freezer">Freezer</option><option value="counter">Counter / pantry</option></select>
+      </label>
+      <label>Quantity <input id="fQty" type="number" min="1" value="1"></label>
+    </div>
+    <div class="two">
+      <label>Bought on <input id="fBought" type="date" required></label>
+      <label>Good for (days) <input id="fShelf" type="number" min="1" required></label>
+    </div>
+    <label>Notes (optional) <input id="fNote" autocomplete="off" placeholder="e.g. half used"></label>
+    <div class="row" style="justify-content:flex-end">
+      <button type="button" class="btn" id="cancelBtn">Cancel</button>
+      <button type="submit" class="btn primary">Save</button>
+    </div>
+  </form>
+</dialog>
+
+<script>
+// ---------- helpers ----------
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pad = n => String(n).padStart(2, '0');
+const isoDate = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const dayNum = iso => { const [y, m, d] = iso.split('-').map(Number); return Date.UTC(y, m - 1, d) / 864e5; };
+const todayNum = () => dayNum(isoDate(new Date()));
+const uid = () => Math.random().toString(36).slice(2, 10);
+const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
+
+// ---------- typical shelf life guesses (days, where) ----------
+// First match wins. Used to prefill the add form; always editable.
+const GUESS = [
+  [/frozen|freezer|dumpling|ice cream/i, 120, 'freezer'],
+  [/chicken|turkey|ground (beef|pork)|mince/i, 2, 'fridge'],
+  [/beef|pork|lamb|steak|bacon|sausage/i, 4, 'fridge'],
+  [/fish|salmon|shrimp|clam|eel|seafood/i, 2, 'fridge'],
+  [/milk|cream/i, 7, 'fridge'], [/yogurt|yoghurt/i, 14, 'fridge'], [/cheese/i, 28, 'fridge'],
+  [/egg/i, 28, 'fridge'], [/tofu/i, 5, 'fridge'], [/bread|bun|bagel/i, 5, 'counter'],
+  [/berry|berries|grape|cherry/i, 7, 'fridge'], [/banana/i, 5, 'counter'],
+  [/mandarin|orange|lemon|lime|grapefruit/i, 18, 'fridge'], [/apple|pear/i, 28, 'fridge'],
+  [/melon|watermelon|grape/i, 7, 'fridge'],
+  [/potato|yam|onion(?!.*green)|garlic|squash|pumpkin/i, 21, 'counter'],
+  [/lettuce|spinach|choy|greens|cabbage|tong ho|brassica|sprout|herb|cilantro|parsley/i, 4, 'fridge'],
+  [/okra|corn|asparagus|zucchini|cucumber|pepper|tomato/i, 5, 'fridge'],
+  [/broccoli|cauliflower|carrot|celery|green onion|scallion/i, 7, 'fridge'],
+  [/mushroom/i, 7, 'fridge'], [/leftover|cooked|soup/i, 4, 'fridge'],
+  [/juice/i, 7, 'fridge'], [/sauce|jam|pickle|kimchi/i, 60, 'fridge'],
+];
+function guess(name) {
+  for (const [re, days, loc] of GUESS) if (re.test(name)) return { days, loc };
+  return null;
+}
+
+// ---------- sample data from the Oct 24 B-Trust receipt ----------
+const RECEIPT_DATE = '2026-10-24';
+function sampleItems() {
+  const mk = (name, zh, loc, shelf, qty = 1) => ({ id: uid(), name, zh, loc, shelf, qty, bought: RECEIPT_DATE, note: '' });
+  return [
+    mk('Tong Ho (small leaf)', '塘蒿', 'fridge', 4),
+    mk('Crown broccoli', '西蘭花', 'fridge', 6),
+    mk('Cauliflower', '椰菜花', 'fridge', 7),
+    mk('Green onion', '青蔥', 'fridge', 7),
+    mk('Brassica rapa (ji mao cai)', '雞毛菜', 'fridge', 3),
+    mk('Winter melon', '冬瓜', 'fridge', 10),
+    mk('Purple yam', '紫芯番薯', 'counter', 21),
+    mk('Yukon potato', '黃馬鈴薯', 'counter', 28),
+    mk('Baby bok choy sprout', '奶油苗', 'fridge', 4),
+    mk('Purple garlic', '紫蒜頭', 'counter', 30),
+    mk('Okra', '印度羊角豆', 'fridge', 4),
+    mk('Fresh corn', '新鮮玉米', 'fridge', 4),
+    mk('King oyster mushroom', '皇子菇', 'fridge', 7, 2),
+    mk('Bananas (batch 1)', '香蕉', 'counter', 5),
+    mk('Bananas (batch 2)', '香蕉', 'counter', 5),
+    mk('Navel oranges', '新奇士甜橙', 'fridge', 21),
+    mk('Mandarin oranges', '砂糖桔', 'fridge', 14),
+    mk('Fuji apple', '紅富士', 'fridge', 28),
+    mk('Blueberries', '藍莓', 'fridge', 10),
+    mk('Arctic surf clams', '北極貝', 'freezer', 180),
+    mk('Grilled eel', '蒲燒鰻魚', 'freezer', 180),
+    mk('Mutton carrot dumplings', '羊肉胡蘿蔔餃子', 'freezer', 180),
+    mk('Grass carp fillet', '脆肉鯇', 'freezer', 120),
+    mk('Flax & quinoa bread', '亞麻籽藜麥麵包', 'counter', 5),
+    mk('Frozen beef tail', '凍嫩牛尾', 'freezer', 180),
+    mk('Boneless chicken leg', '去骨去皮雞脾肉', 'fridge', 2),
+  ];
+}
+
+// ---------- state ----------
+const KEY = 'myfridge.v1';
+let state = load();
+let tab = 'all';
+let editingId = null;
+let lastRemoved = null;
+
+function load() {
+  try {
+    const s = JSON.parse(localStorage.getItem(KEY));
+    if (s && Array.isArray(s.items)) return s;
+  } catch (e) {}
+  return { items: sampleItems(), used: 0, tossed: 0 };
+}
+function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} }
+
+// ---------- status ----------
+function info(it) {
+  const age = todayNum() - dayNum(it.bought);
+  const left = it.shelf - age;
+  let level, label;
+  if (it.loc === 'freezer' && left > 14) { level = 'cold'; label = left > 60 ? `${Math.round(left / 30)} mo left` : `${left}d left`; }
+  else if (left < 0) { level = 'bad'; label = `${plural(-left, 'day')} past`; }
+  else if (left === 0) { level = 'bad'; label = 'Eat today'; }
+  else if (left <= 2) { level = 'bad'; label = `${plural(left, 'day')} left`; }
+  else if (left <= 4) { level = 'warn'; label = `${left} days left`; }
+  else { level = 'ok'; label = `${left} days left`; }
+  return { age, left, level, label };
+}
+const ageText = age => age <= 0 ? 'bought today' : age === 1 ? 'bought yesterday' : `bought ${age} days ago`;
+const LOC = { fridge: 'Fridge', freezer: 'Freezer', counter: 'Counter' };
+
+// ---------- render ----------
+function render() {
+  const items = state.items.map(it => ({ it, ...info(it) })).sort((a, b) => a.left - b.left);
+
+  const soon = items.filter(x => x.it.loc !== 'freezer' && x.left <= 2).length;
+  $('summary').textContent = `${plural(items.length, 'item')} · ${soon ? `${soon} to eat soon` : 'nothing urgent'}`;
+
+  const counts = { all: items.length, fridge: 0, freezer: 0, counter: 0 };
+  items.forEach(x => counts[x.it.loc]++);
+  $('tabs').innerHTML = [['all', 'All'], ['fridge', 'Fridge'], ['freezer', 'Freezer'], ['counter', 'Counter']]
+    .map(([k, l]) => `<button class="tab" data-tab="${k}" aria-pressed="${tab === k}">${l} (${counts[k]})</button>`).join('');
+
+  const shown = items.filter(x => tab === 'all' || x.it.loc === tab);
+  let html = '';
+  if (tab === 'all') {
+    const urgent = shown.filter(x => x.it.loc !== 'freezer' && x.left <= 2);
+    const rest = shown.filter(x => !urgent.includes(x));
+    if (urgent.length) html += `<h2>Eat these first</h2>` + urgent.map(card).join('');
+    if (rest.length) html += `<h2>${urgent.length ? 'Everything else' : 'Everything'}</h2>` + rest.map(card).join('');
+  } else {
+    html = shown.map(card).join('');
+  }
+  $('list').innerHTML = html || `<div class="empty">Nothing here. Tap + to add something.</div>`;
+  $('stats').textContent = (state.used || state.tossed) ? `Finished: ${state.used} · Tossed: ${state.tossed}` : '';
+}
+
+function card({ it, age, left, level, label }) {
+  const qty = it.qty > 1 ? ` ×${it.qty}` : '';
+  const zh = it.zh ? `<small>${esc(it.zh)}</small>` : '';
+  const note = it.note ? ` · ${esc(it.note)}` : '';
+  const freeze = it.loc !== 'freezer' && left <= 2 && left >= -1
+    ? `<button class="btn" data-act="freeze" data-id="${it.id}">Freeze it</button>` : '';
+  return `<div class="item ${level}">
+    <div class="top">
+      <div class="info">
+        <div class="name">${esc(it.name)}${qty} ${zh}</div>
+        <div class="meta">${LOC[it.loc]} · ${ageText(age)}${note}</div>
+      </div>
+      <span class="badge ${level}">${label}</span>
+    </div>
+    <div class="row">
+      ${freeze}
+      <button class="btn primary" data-act="used" data-id="${it.id}">Used up</button>
+      <button class="btn" data-act="edit" data-id="${it.id}">Edit</button>
+      <button class="btn danger" data-act="toss" data-id="${it.id}">Toss</button>
+    </div>
+  </div>`;
+}
+
+// ---------- actions ----------
+let toastTimer;
+function toast(msg, undo) {
+  $('toastMsg').textContent = msg;
+  $('toastUndo').style.display = undo ? '' : 'none';
+  $('toast').style.display = 'flex';
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { $('toast').style.display = 'none'; lastRemoved = null; }, 5000);
+}
+function remove(id, kind) {
+  const idx = state.items.findIndex(i => i.id === id);
+  if (idx < 0) return;
+  const [it] = state.items.splice(idx, 1);
+  state[kind]++;
+  lastRemoved = { it, idx, kind };
+  save(); render();
+  toast(kind === 'used' ? `Finished ${it.name}` : `Tossed ${it.name}`, true);
+}
+$('toastUndo').onclick = () => {
+  if (!lastRemoved) return;
+  const { it, idx, kind } = lastRemoved;
+  state.items.splice(idx, 0, it); state[kind]--;
+  lastRemoved = null; $('toast').style.display = 'none';
+  save(); render();
+};
+
+$('tabs').onclick = e => {
+  const b = e.target.closest('[data-tab]'); if (!b) return;
+  tab = b.dataset.tab; render();
+};
+$('list').onclick = e => {
+  const b = e.target.closest('[data-act]'); if (!b) return;
+  const id = b.dataset.id, act = b.dataset.act;
+  if (act === 'used') remove(id, 'used');
+  else if (act === 'toss') remove(id, 'tossed');
+  else if (act === 'edit') openForm(id);
+  else if (act === 'freeze') {
+    const it = state.items.find(i => i.id === id);
+    it.loc = 'freezer'; it.bought = isoDate(new Date()); it.shelf = 90;
+    save(); render(); toast(`${it.name} moved to the freezer (90 days from today)`);
+  }
+};
+
+// ---------- add / edit form ----------
+let shelfTouched = false, locTouched = false;
+function openForm(id) {
+  editingId = id || null;
+  const it = id ? state.items.find(i => i.id === id) : null;
+  $('dlgTitle').textContent = it ? 'Edit item' : 'Add item';
+  $('fName').value = it?.name ?? '';
+  $('fZh').value = it?.zh ?? '';
+  $('fLoc').value = it?.loc ?? 'fridge';
+  $('fQty').value = it?.qty ?? 1;
+  $('fBought').value = it?.bought ?? isoDate(new Date());
+  $('fShelf').value = it?.shelf ?? '';
+  $('fNote').value = it?.note ?? '';
+  shelfTouched = locTouched = !!it;
+  $('dlg').showModal();
+  $('fName').focus();
+}
+$('addBtn').onclick = () => openForm();
+$('cancelBtn').onclick = () => $('dlg').close();
+$('fShelf').oninput = () => shelfTouched = true;
+$('fLoc').onchange = () => locTouched = true;
+$('fName').oninput = () => {
+  const g = guess($('fName').value);
+  if (!g) return;
+  if (!shelfTouched) $('fShelf').value = g.days;
+  if (!locTouched) $('fLoc').value = g.loc;
+};
+$('form').onsubmit = () => {
+  const data = {
+    name: $('fName').value.trim(), zh: $('fZh').value.trim(), loc: $('fLoc').value,
+    qty: Math.max(1, +$('fQty').value || 1), bought: $('fBought').value,
+    shelf: Math.max(1, +$('fShelf').value || 1), note: $('fNote').value.trim(),
+  };
+  if (editingId) Object.assign(state.items.find(i => i.id === editingId), data);
+  else state.items.push({ id: uid(), ...data });
+  save(); render();
+};
+
+// ---------- backup ----------
+$('exportBtn').onclick = () => {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' }));
+  a.download = `myfridge-${isoDate(new Date())}.json`; a.click();
+  URL.revokeObjectURL(a.href);
+};
+$('importBtn').onclick = () => $('importFile').click();
+$('importFile').onchange = async e => {
+  const f = e.target.files[0]; if (!f) return;
+  try {
+    const s = JSON.parse(await f.text());
+    if (!Array.isArray(s.items)) throw 0;
+    state = { items: s.items, used: s.used || 0, tossed: s.tossed || 0 };
+    save(); render(); toast('Backup imported');
+  } catch (err) { toast('That file is not a My Fridge backup'); }
+  e.target.value = '';
+};
+$('resetBtn').onclick = () => {
+  if (!confirm('Replace everything with the Oct 24 grocery list?')) return;
+  state = { items: sampleItems(), used: 0, tossed: 0 };
+  save(); render();
+};
+
+render();
+setInterval(render, 60 * 60 * 1000); // refresh day counts if the tab stays open
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+</script>
+</body>
+</html>
