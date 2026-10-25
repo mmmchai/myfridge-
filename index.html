@@ -80,6 +80,10 @@
   .meta { color: var(--muted); font-size: .85rem; }
   .lab { font-size: .8rem; color: var(--muted); margin-bottom: 6px; }
   .amts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .stepper { display: grid; grid-template-columns: 64px 1fr 64px; gap: 8px; align-items: center; text-align: center; }
+  .stepper button { border: 1.5px solid var(--line); background: var(--bg); border-radius: 12px; height: 56px; font-size: 1.8rem; font-weight: 600; }
+  .stepper button.plus { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  .stepper .n { font-size: 1.8rem; font-weight: 700; line-height: 1.1; } .stepper .n small { display: block; font-size: .8rem; font-weight: 400; color: var(--muted); }
   .amts button { border: 1.5px solid var(--line); background: var(--bg); border-radius: 12px; padding: 12px 4px; font-size: 1.05rem; font-weight: 600; }
   .amts button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
 
@@ -152,7 +156,7 @@
     <datalist id="stores"></datalist>
     <label>Good for (days) <input id="fShelf" type="number" min="1" required></label>
     <div class="two">
-      <label>Quantity <input id="fQty" type="number" min="1" value="1"></label>
+      <label>How many pieces? <input id="fQty" type="number" min="1" inputmode="numeric" placeholder="e.g. 6 apples"></label>
       <label>Notes (optional) <input id="fNote" autocomplete="off" placeholder="e.g. opened"></label>
     </div>
     <div class="row" style="justify-content:flex-end">
@@ -240,13 +244,18 @@ const AMTS = [
 ];
 const amtLabel = v => (AMTS.find(a => a.v === v) || { label: `${Math.round(v * 100)}%` }).label;
 
+// counted items (apples, eggs...) track pieces left instead of a fraction
+const fillOf = it => it.counted ? Math.min(1, it.qty / (it.total || it.qty || 1)) : it.amt;
+const leftText = it => it.counted ? `${it.qty} left` : amtLabel(it.amt);
+
 // ---------- sample data from the Oct 24 B-Trust receipt ----------
 const RECEIPT_DATE = '2026-10-24';
 const RECEIPT_STORE = 'B-Trust Supermarket';
 function sampleItems() {
   const mk = (name, zh, loc, shelf, qty = 1) => {
     const cat = guessCat(name);
-    return { id: uid(), name, zh, loc, shelf, qty, bought: RECEIPT_DATE, store: RECEIPT_STORE, note: '', cat, emoji: guessEmoji(name, cat), amt: 1 };
+    return { id: uid(), name, zh, loc, shelf, qty, bought: RECEIPT_DATE, store: RECEIPT_STORE, note: '', cat, emoji: guessEmoji(name, cat), amt: 1,
+      counted: qty > 1, ...(qty > 1 ? { total: qty } : {}) };
   };
   return [
     mk('Tong Ho (small leaf)', '塘蒿', 'fridge', 4),
@@ -291,6 +300,7 @@ function migrate(s) {
     if (!it.cat || !CAT[it.cat]) it.cat = guessCat(it.name);
     if (!it.emoji) it.emoji = guessEmoji(it.name, it.cat);
     if (typeof it.amt !== 'number') it.amt = 1;
+    if (it.counted === undefined) { it.counted = it.qty > 1; if (it.counted) it.total = it.qty; }   // older saves: qty>1 meant a count
     if (!it.store && it.bought === RECEIPT_DATE) it.store = RECEIPT_STORE;   // the first receipt
   });
   return s;
@@ -366,12 +376,13 @@ function render() {
 
 function tile(x) {
   const { it, level, short } = x;
-  const half = it.amt < 1 ? `<span class="amtlab">${amtLabel(it.amt)}</span>` : '';
-  const qty = it.qty > 1 ? ` ×${it.qty}` : '';
+  const half = it.counted ? `<span class="amtlab">${it.qty === it.total ? '×' + it.qty : it.qty + '/' + it.total}</span>`
+    : it.amt < 1 ? `<span class="amtlab">${amtLabel(it.amt)}</span>` : '';
+  const qty = '';
   return `<button class="tile ${level === 'ok' || level === 'cold' ? '' : level}" data-id="${it.id}">
     <div class="thumb">${thumbHTML(it)}<span class="badge ${level}">${short}</span>${half}</div>
     <div class="tinfo"><div class="tname">${esc(it.name)}${qty}</div>
-      <div class="bar"><i style="width:${Math.round(it.amt * 100)}%"></i></div></div>
+      <div class="bar"><i style="width:${Math.round(fillOf(it) * 100)}%"></i></div></div>
   </button>`;
 }
 
@@ -387,17 +398,24 @@ function renderSheet() {
     <div class="shead">
       <div class="thumb">${thumbHTML(it)}</div>
       <div>
-        <div class="sname">${esc(it.name)}${it.qty > 1 ? ` ×${it.qty}` : ''}</div>
+        <div class="sname">${esc(it.name)}</div>
         ${it.zh ? `<div class="meta">${esc(it.zh)}</div>` : ''}
         <div class="meta">${CAT[it.cat].emoji} ${CAT[it.cat].label} · ${LOC[it.loc]}${it.note ? ' · ' + esc(it.note) : ''}</div>
         <div class="meta">🛒 ${boughtText(it)} (${ageText(age).replace('bought ', '')})</div>
         <span class="badge big ${level}">${label}</span>
       </div>
     </div>
-    <div>
+    ${it.counted ? `<div>
+      <div class="lab">How many left?</div>
+      <div class="stepper">
+        <button data-step="-1" aria-label="One less">−</button>
+        <div class="n">${it.qty}<small>of ${it.total} pieces</small></div>
+        <button class="plus" data-step="1" aria-label="One more">+</button>
+      </div>
+    </div>` : `<div>
       <div class="lab">How much is left?</div>
       <div class="amts">${AMTS.map(a => `<button data-amt="${a.v}" aria-pressed="${it.amt === a.v}">${a.label}</button>`).join('')}</div>
-    </div>
+    </div>`}
     <div class="row">
       <button class="btn primary" data-sact="used">✓ Used up</button>
       ${freeze ? '<button class="btn" data-sact="freeze">❄ Freeze it</button>' : ''}
@@ -408,6 +426,13 @@ function renderSheet() {
 }
 $('sheetBody').onclick = e => {
   const it = state.items.find(i => i.id === openId); if (!it) return;
+  const st = e.target.closest('[data-step]');
+  if (st) {
+    it.qty += +st.dataset.step;
+    if (it.qty > it.total) it.total = it.qty;
+    if (it.qty <= 0) { $('sheet').close(); it.qty = 1; remove(it.id, 'used'); return; }   // last piece eaten
+    save(); render(); return;
+  }
   const a = e.target.closest('[data-amt]');
   if (a) { it.amt = +a.dataset.amt; save(); $('sheet').close(); render(); toast(`${it.name}: ${amtLabel(it.amt)}`); return; }
   const b = e.target.closest('[data-sact]'); if (!b) return;
@@ -445,7 +470,7 @@ function renderReview(done, total) {
       <div class="thumb">${thumbHTML(it)}</div>
       <div>
         <div class="sname">${esc(it.name)}${it.zh ? ` <span class="meta">${esc(it.zh)}</span>` : ''}</div>
-        <div class="meta">${LOC[it.loc]} · ${boughtText(it)} · ${amtLabel(it.amt)}</div>
+        <div class="meta">${LOC[it.loc]} · ${boughtText(it)} · ${leftText(it)}</div>
         <span class="badge big bad">${label}</span>
       </div>
     </div>
@@ -515,7 +540,7 @@ function openForm(id) {
   $('fCat').value = it?.cat ?? 'other';
   $('fLoc').value = it?.loc ?? 'fridge';
   $('fEmoji').value = it?.emoji ?? '🛒';
-  $('fQty').value = it?.qty ?? 1;
+  $('fQty').value = it?.counted ? it.qty : '';
   $('fBought').value = it?.bought ?? isoDate(new Date());
   $('fStore').value = it ? (it.store ?? '') : (state.lastStore ?? '');
   $('stores').innerHTML = [...new Set(state.items.map(i => i.store).filter(Boolean))].map(n => `<option value="${esc(n)}">`).join('');
@@ -559,13 +584,17 @@ $('form').onsubmit = () => {
   const data = {
     name: $('fName').value.trim(), zh: $('fZh').value.trim(), cat: $('fCat').value, loc: $('fLoc').value,
     emoji: $('fEmoji').value.trim() || CAT[$('fCat').value].emoji, photo: formPhoto || undefined,
-    qty: Math.max(1, +$('fQty').value || 1), bought: $('fBought').value, store: $('fStore').value.trim(),
+    bought: $('fBought').value, store: $('fStore').value.trim(),
     shelf: Math.max(1, +$('fShelf').value || 1), note: $('fNote').value.trim(),
   };
-  if (editingId) {
-    const it = state.items.find(i => i.id === editingId);
-    Object.assign(it, data);
-    if (!data.photo) delete it.photo;
+  const pieces = Math.floor(+$('fQty').value);
+  const old = editingId && state.items.find(i => i.id === editingId);
+  if (pieces >= 1) { data.counted = true; data.qty = pieces; data.total = Math.max(pieces, old?.counted ? old.total : 0); }
+  else { data.counted = false; data.qty = 1; delete data.total; }
+  if (old) {
+    Object.assign(old, data);
+    if (!data.photo) delete old.photo;
+    if (!data.counted) delete old.total;
   } else state.items.push({ id: uid(), amt: 1, ...data });
   if (data.store) state.lastStore = data.store;   // next new item defaults to the same shop
   save(); render();
