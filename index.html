@@ -9,7 +9,7 @@
 <style>
   :root {
     --bg: #f6f5f1; --card: #fff; --ink: #1f2a24; --muted: #6b7770; --line: #e4e2da;
-    --accent: #2f7d5b; --accent-ink: #fff;
+    --accent: #2f7d5b; --accent-ink: #fff; --thumb: #eef0ea;
     --bad: #c0392b; --bad-bg: #fbe9e6;
     --warn: #b36b00; --warn-bg: #fff1d6;
     --ok: #2f7d5b; --ok-bg: #e3f2ea;
@@ -17,7 +17,7 @@
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
-      --bg: #141916; --card: #1d2420; --ink: #e8eee9; --muted: #98a59d; --line: #2c3631;
+      --bg: #141916; --card: #1d2420; --ink: #e8eee9; --muted: #98a59d; --line: #2c3631; --thumb: #27302b;
       --accent: #4fb788; --accent-ink: #0d1a13;
       --bad: #ff8f80; --bad-bg: #3a1f1b;
       --warn: #f0b65a; --warn-bg: #3a2c12;
@@ -25,62 +25,79 @@
       --cold: #84b6ee; --cold-bg: #16273b;
     }
   }
-  * { box-sizing: border-box; }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   body { margin: 0; background: var(--bg); color: var(--ink);
-    font: 16px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans SC", sans-serif; }
-  main { max-width: 640px; margin: 0 auto; padding: 16px; padding-bottom: 96px; }
-  header { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 12px; }
-  h1 { font-size: 1.5rem; margin: 0; }
-  .sub { color: var(--muted); font-size: .875rem; }
-  h2 { font-size: .8rem; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 24px 0 8px; }
-  .tabs { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; }
-  .tab { border: 1px solid var(--line); background: var(--card); color: var(--ink); border-radius: 999px;
-    padding: 6px 14px; font: inherit; font-size: .9rem; white-space: nowrap; cursor: pointer; }
-  .tab[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
-  .item { background: var(--card); border: 1px solid var(--line); border-left-width: 5px; border-radius: 10px;
-    padding: 10px 12px; margin-bottom: 8px; display: grid; gap: 8px; }
-  .top { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
-  .item.bad { border-left-color: var(--bad); } .item.warn { border-left-color: var(--warn); }
-  .item.ok { border-left-color: var(--ok); } .item.cold { border-left-color: var(--cold); }
-  .info { flex: 1; min-width: 0; }
-  .name { font-weight: 600; overflow-wrap: anywhere; }
-  .name small { font-weight: 400; color: var(--muted); margin-left: 4px; }
-  .meta { color: var(--muted); font-size: .85rem; }
-  .badge { font-size: .78rem; font-weight: 600; border-radius: 999px; padding: 2px 9px; white-space: nowrap; }
+    font: 16px/1.35 system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans SC", sans-serif; }
+  main { max-width: 720px; margin: 0 auto; padding: 14px; padding-bottom: 100px; }
+  h1 { font-size: 1.4rem; margin: 0; }
+  .sub { color: var(--muted); font-size: .85rem; margin-bottom: 10px; }
+  h2 { font-size: .8rem; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 18px 0 8px; }
+  h2 span { font-weight: 400; }
+  button { font: inherit; cursor: pointer; color: inherit; }
+
+  .chips { display: flex; gap: 6px; overflow-x: auto; padding: 2px 0 8px; position: sticky; top: 0; background: var(--bg); z-index: 2; scrollbar-width: none; }
+  .chips::-webkit-scrollbar { display: none; }
+  .chip { border: 1px solid var(--line); background: var(--card); border-radius: 999px; padding: 6px 12px; font-size: .88rem; white-space: nowrap; }
+  .chip[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  .chip.soon[aria-pressed="false"] { border-color: var(--bad); color: var(--bad); }
+
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  @media (min-width: 520px) { .grid { grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); } }
+  .tile { border: 1px solid var(--line); background: var(--card); border-radius: 12px; padding: 0; overflow: hidden; text-align: left; display: block; width: 100%; }
+  .thumb { position: relative; aspect-ratio: 1; background: var(--thumb); display: grid; place-items: center; font-size: 2.6rem; overflow: hidden; }
+  .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .thumb .badge { position: absolute; top: 5px; right: 5px; }
+  .thumb .amtlab { position: absolute; left: 5px; top: 5px; font-size: .72rem; font-weight: 700; background: var(--card); border-radius: 999px; padding: 1px 7px; }
+  .tinfo { padding: 6px 8px 8px; }
+  .tname { font-size: .8rem; font-weight: 600; line-height: 1.2; height: 2.4em; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  .bar { height: 5px; border-radius: 3px; background: var(--line); margin-top: 6px; overflow: hidden; }
+  .bar i { display: block; height: 100%; background: var(--accent); }
+  .tile.bad { border-color: var(--bad); } .tile.warn { border-color: var(--warn); }
+
+  .badge { font-size: .72rem; font-weight: 700; border-radius: 999px; padding: 2px 8px; white-space: nowrap; }
   .badge.bad { background: var(--bad-bg); color: var(--bad); } .badge.warn { background: var(--warn-bg); color: var(--warn); }
   .badge.ok { background: var(--ok-bg); color: var(--ok); } .badge.cold { background: var(--cold-bg); color: var(--cold); }
-    button { font: inherit; cursor: pointer; }
-  .btn { border: 1px solid var(--line); background: var(--card); color: var(--ink); border-radius: 8px; padding: 6px 12px; font-size: .85rem; }
+  .big.badge { font-size: .85rem; padding: 3px 11px; }
+
+  .btn { border: 1px solid var(--line); background: var(--card); border-radius: 10px; padding: 9px 14px; font-size: .92rem; }
   .btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
   .btn.danger { color: var(--bad); }
-  .row { display: flex; gap: 6px; flex-wrap: wrap; }
-  .empty { text-align: center; color: var(--muted); padding: 32px 0; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .empty { text-align: center; color: var(--muted); padding: 40px 0; }
   .fab { position: fixed; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom)); width: 56px; height: 56px;
     border-radius: 50%; border: 0; background: var(--accent); color: var(--accent-ink); font-size: 2rem; line-height: 1;
     box-shadow: 0 4px 14px rgba(0,0,0,.25); }
-  dialog { border: 0; border-radius: 14px; padding: 0; width: min(92vw, 420px); background: var(--card); color: var(--ink); }
+
+  dialog { border: 0; border-radius: 16px; padding: 0; width: min(94vw, 440px); max-height: 92vh; background: var(--card); color: var(--ink); }
   dialog::backdrop { background: rgba(0,0,0,.45); }
-  form { padding: 18px; display: grid; gap: 12px; }
+  .sheet { padding: 16px; display: grid; gap: 12px; }
+  .shead { display: flex; gap: 12px; align-items: center; }
+  .shead .thumb { width: 84px; border-radius: 12px; font-size: 3rem; flex: none; }
+  .sname { font-weight: 700; font-size: 1.1rem; overflow-wrap: anywhere; }
+  .meta { color: var(--muted); font-size: .85rem; }
+  .lab { font-size: .8rem; color: var(--muted); margin-bottom: 6px; }
+  .amts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .amts button { border: 1.5px solid var(--line); background: var(--bg); border-radius: 12px; padding: 12px 4px; font-size: 1.05rem; font-weight: 600; }
+  .amts button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+
+  form { padding: 16px; display: grid; gap: 12px; overflow: auto; max-height: 92vh; }
   label { display: grid; gap: 4px; font-size: .85rem; color: var(--muted); }
   input, select { font: inherit; padding: 9px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); width: 100%; }
   .two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .photo { display: flex; gap: 10px; align-items: center; }
+  .photo .thumb { width: 64px; border-radius: 10px; font-size: 2rem; flex: none; }
   .foot { color: var(--muted); font-size: .8rem; text-align: center; margin-top: 28px; }
   .foot button { background: none; border: 0; color: var(--accent); text-decoration: underline; padding: 4px; font-size: .8rem; }
   #toast { position: fixed; left: 50%; bottom: 88px; transform: translateX(-50%); background: var(--ink); color: var(--bg);
-    padding: 10px 16px; border-radius: 10px; font-size: .9rem; display: none; gap: 12px; align-items: center; }
+    padding: 10px 16px; border-radius: 10px; font-size: .9rem; display: none; gap: 12px; align-items: center; z-index: 10; max-width: 90vw; }
   #toast button { background: none; border: 0; color: inherit; text-decoration: underline; font: inherit; }
 </style>
 </head>
 <body>
 <main>
-  <header>
-    <div>
-      <h1>🥬 My Fridge</h1>
-      <div class="sub" id="summary"></div>
-    </div>
-  </header>
-
-  <div class="tabs" id="tabs"></div>
+  <h1>🥬 My Fridge</h1>
+  <div class="sub" id="summary"></div>
+  <div class="chips" id="chips"></div>
   <div id="list"></div>
 
   <div class="foot">
@@ -95,22 +112,39 @@
 <button class="fab" id="addBtn" aria-label="Add item">+</button>
 <div id="toast" role="status"><span id="toastMsg"></span><button id="toastUndo">Undo</button></div>
 
+<!-- tap a tile: how much is left + quick actions -->
+<dialog id="sheet"><div class="sheet" id="sheetBody"></div></dialog>
+
+<!-- add / edit -->
 <dialog id="dlg">
   <form method="dialog" id="form">
     <strong id="dlgTitle">Add item</strong>
     <label>Name <input id="fName" required autocomplete="off" placeholder="e.g. Milk"></label>
     <label>Chinese name (optional) <input id="fZh" autocomplete="off"></label>
     <div class="two">
+      <label>Category <select id="fCat"></select></label>
       <label>Where
         <select id="fLoc"><option value="fridge">Fridge</option><option value="freezer">Freezer</option><option value="counter">Counter / pantry</option></select>
       </label>
-      <label>Quantity <input id="fQty" type="number" min="1" value="1"></label>
+    </div>
+    <div class="photo">
+      <div class="thumb" id="fThumb">🛒</div>
+      <div style="flex:1;display:grid;gap:6px">
+        <label>Icon (emoji) <input id="fEmoji" maxlength="4" autocomplete="off"></label>
+        <div class="row">
+          <label class="btn" style="color:var(--ink);cursor:pointer">📷 Photo<input id="fPhoto" type="file" accept="image/*" hidden></label>
+          <button type="button" class="btn" id="fPhotoClear" hidden>Remove photo</button>
+        </div>
+      </div>
     </div>
     <div class="two">
       <label>Bought on <input id="fBought" type="date" required></label>
       <label>Good for (days) <input id="fShelf" type="number" min="1" required></label>
     </div>
-    <label>Notes (optional) <input id="fNote" autocomplete="off" placeholder="e.g. half used"></label>
+    <div class="two">
+      <label>Quantity <input id="fQty" type="number" min="1" value="1"></label>
+      <label>Notes (optional) <input id="fNote" autocomplete="off" placeholder="e.g. opened"></label>
+    </div>
     <div class="row" style="justify-content:flex-end">
       <button type="button" class="btn" id="cancelBtn">Cancel</button>
       <button type="submit" class="btn primary">Save</button>
@@ -129,8 +163,44 @@ const todayNum = () => dayNum(isoDate(new Date()));
 const uid = () => Math.random().toString(36).slice(2, 10);
 const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
 
+// ---------- categories (think "what can I cook with...") ----------
+const CATS = [
+  { key: 'meat',    label: 'Meat',            emoji: '🥩' },
+  { key: 'seafood', label: 'Seafood',         emoji: '🐟' },
+  { key: 'leafy',   label: 'Leafy greens',    emoji: '🥬' },
+  { key: 'veg',     label: 'Veggies',         emoji: '🥦' },
+  { key: 'root',    label: 'Roots & aromatics', emoji: '🧅' },
+  { key: 'fruit',   label: 'Fruit',           emoji: '🍊' },
+  { key: 'ready',   label: 'Ready & bakery',  emoji: '🥟' },
+  { key: 'other',   label: 'Dairy & other',   emoji: '🛒' },
+];
+const CAT = Object.fromEntries(CATS.map(c => [c.key, c]));
+
+const CAT_GUESS = [
+  [/dumpling|bread|bun\b|bagel|noodle|pizza|leftover|cooked|soup|cake/i, 'ready'],
+  [/fish|carp|salmon|shrimp|clam|eel|crab|squid|scallop|oyster(?! mushroom)|seafood/i, 'seafood'],
+  [/chicken|beef|pork|lamb|mutton|steak|bacon|sausage|turkey|duck|ribs?\b/i, 'meat'],
+  [/lettuce|spinach|choy|greens|cabbage|tong ho|brassica|sprout|cilantro|parsley|herb|kale|watercress/i, 'leafy'],
+  [/potato|yam|garlic|onion|ginger|carrot|radish|taro|shallot/i, 'root'],
+  [/winter melon|bitter melon|broccoli|cauliflower|okra|corn|mushroom|cucumber|tomato|pepper|zucchini|eggplant|bean|pea\b|celery|squash|asparagus/i, 'veg'],
+  [/apple|banana|orange|mandarin|berry|berries|grape|pear|melon|lemon|lime|peach|mango|cherry|kiwi/i, 'fruit'],
+];
+const EMOJI_GUESS = [
+  [/chicken/i, '🍗'], [/beef|steak/i, '🥩'], [/pork|bacon|sausage|ribs/i, '🥓'], [/lamb|mutton/i, '🍖'],
+  [/clam|oyster(?! mushroom)/i, '🦪'], [/shrimp/i, '🦐'], [/crab/i, '🦀'], [/fish|carp|salmon|eel/i, '🐟'],
+  [/dumpling/i, '🥟'], [/bread|bun\b|bagel/i, '🍞'], [/noodle/i, '🍜'],
+  [/broccoli|cauliflower/i, '🥦'], [/bok choy|choy|lettuce|cabbage|greens|spinach|tong ho|brassica|sprout/i, '🥬'],
+  [/corn/i, '🌽'], [/okra|cucumber|zucchini/i, '🥒'], [/mushroom/i, '🍄'], [/tomato/i, '🍅'], [/eggplant/i, '🍆'],
+  [/winter melon/i, '🍈'], [/pepper/i, '🫑'], [/carrot/i, '🥕'],
+  [/potato/i, '🥔'], [/yam/i, '🍠'], [/garlic/i, '🧄'], [/green onion|scallion/i, '🌿'], [/onion/i, '🧅'],
+  [/banana/i, '🍌'], [/orange|mandarin/i, '🍊'], [/apple/i, '🍎'], [/blueberr/i, '🫐'], [/berry|berries/i, '🍓'],
+  [/grape/i, '🍇'], [/lemon/i, '🍋'], [/pear/i, '🍐'], [/melon/i, '🍉'],
+  [/milk/i, '🥛'], [/egg/i, '🥚'], [/cheese/i, '🧀'], [/yogh?urt/i, '🥣'], [/tofu/i, '⬜'], [/juice/i, '🧃'],
+];
+function guessCat(name) { for (const [re, c] of CAT_GUESS) if (re.test(name)) return c; return 'other'; }
+function guessEmoji(name, cat) { for (const [re, e] of EMOJI_GUESS) if (re.test(name)) return e; return CAT[cat || guessCat(name)].emoji; }
+
 // ---------- typical shelf life guesses (days, where) ----------
-// First match wins. Used to prefill the add form; always editable.
 const GUESS = [
   [/frozen|freezer|dumpling|ice cream/i, 120, 'freezer'],
   [/chicken|turkey|ground (beef|pork)|mince/i, 2, 'fridge'],
@@ -140,7 +210,7 @@ const GUESS = [
   [/egg/i, 28, 'fridge'], [/tofu/i, 5, 'fridge'], [/bread|bun|bagel/i, 5, 'counter'],
   [/berry|berries|grape|cherry/i, 7, 'fridge'], [/banana/i, 5, 'counter'],
   [/mandarin|orange|lemon|lime|grapefruit/i, 18, 'fridge'], [/apple|pear/i, 28, 'fridge'],
-  [/melon|watermelon|grape/i, 7, 'fridge'],
+  [/melon|watermelon/i, 7, 'fridge'],
   [/potato|yam|onion(?!.*green)|garlic|squash|pumpkin/i, 21, 'counter'],
   [/lettuce|spinach|choy|greens|cabbage|tong ho|brassica|sprout|herb|cilantro|parsley/i, 4, 'fridge'],
   [/okra|corn|asparagus|zucchini|cucumber|pepper|tomato/i, 5, 'fridge'],
@@ -153,10 +223,20 @@ function guess(name) {
   return null;
 }
 
+// ---------- amount left ----------
+const AMTS = [
+  { v: 1,    label: 'Full' }, { v: 0.75, label: '¾ left' }, { v: 0.5, label: '½ left' },
+  { v: 0.33, label: '⅓ left' }, { v: 0.25, label: '¼ left' }, { v: 0.1, label: 'Last bit' },
+];
+const amtLabel = v => (AMTS.find(a => a.v === v) || { label: `${Math.round(v * 100)}%` }).label;
+
 // ---------- sample data from the Oct 24 B-Trust receipt ----------
 const RECEIPT_DATE = '2026-10-24';
 function sampleItems() {
-  const mk = (name, zh, loc, shelf, qty = 1) => ({ id: uid(), name, zh, loc, shelf, qty, bought: RECEIPT_DATE, note: '' });
+  const mk = (name, zh, loc, shelf, qty = 1) => {
+    const cat = guessCat(name);
+    return { id: uid(), name, zh, loc, shelf, qty, bought: RECEIPT_DATE, note: '', cat, emoji: guessEmoji(name, cat), amt: 1 };
+  };
   return [
     mk('Tong Ho (small leaf)', '塘蒿', 'fridge', 4),
     mk('Crown broccoli', '西蘭花', 'fridge', 6),
@@ -190,85 +270,134 @@ function sampleItems() {
 // ---------- state ----------
 const KEY = 'myfridge.v1';
 let state = load();
-let tab = 'all';
+let filter = 'all';
 let editingId = null;
 let lastRemoved = null;
 
+function migrate(s) {
+  s.items.forEach(it => {   // older saves have no category / icon / amount
+    if (!it.cat || !CAT[it.cat]) it.cat = guessCat(it.name);
+    if (!it.emoji) it.emoji = guessEmoji(it.name, it.cat);
+    if (typeof it.amt !== 'number') it.amt = 1;
+  });
+  return s;
+}
 function load() {
   try {
     const s = JSON.parse(localStorage.getItem(KEY));
-    if (s && Array.isArray(s.items)) return s;
+    if (s && Array.isArray(s.items)) return migrate(s);
   } catch (e) {}
   return { items: sampleItems(), used: 0, tossed: 0 };
 }
-function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} }
+function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) { toast('Could not save (storage full?)'); } }
 
 // ---------- status ----------
 function info(it) {
   const age = todayNum() - dayNum(it.bought);
   const left = it.shelf - age;
-  let level, label;
-  if (it.loc === 'freezer' && left > 14) { level = 'cold'; label = left > 60 ? `${Math.round(left / 30)} mo left` : `${left}d left`; }
-  else if (left < 0) { level = 'bad'; label = `${plural(-left, 'day')} past`; }
-  else if (left === 0) { level = 'bad'; label = 'Eat today'; }
-  else if (left <= 2) { level = 'bad'; label = `${plural(left, 'day')} left`; }
-  else if (left <= 4) { level = 'warn'; label = `${left} days left`; }
-  else { level = 'ok'; label = `${left} days left`; }
-  return { age, left, level, label };
+  let level, label, short;
+  if (it.loc === 'freezer' && left > 14) { level = 'cold'; label = left > 60 ? `${Math.round(left / 30)} months left` : `${left} days left`; short = left > 60 ? `❄ ${Math.round(left / 30)}mo` : `❄ ${left}d`; }
+  else if (left < 0) { level = 'bad'; label = `${plural(-left, 'day')} past`; short = `${-left}d past`; }
+  else if (left === 0) { level = 'bad'; label = 'Eat today'; short = 'Today'; }
+  else if (left <= 2) { level = 'bad'; label = `${plural(left, 'day')} left`; short = `${left}d`; }
+  else if (left <= 4) { level = 'warn'; label = `${left} days left`; short = `${left}d`; }
+  else { level = 'ok'; label = `${left} days left`; short = `${left}d`; }
+  return { age, left, level, label, short };
 }
 const ageText = age => age <= 0 ? 'bought today' : age === 1 ? 'bought yesterday' : `bought ${age} days ago`;
 const LOC = { fridge: 'Fridge', freezer: 'Freezer', counter: 'Counter' };
+const isSoon = x => x.it.loc !== 'freezer' && x.left <= 2;
 
 // ---------- render ----------
+const thumbHTML = it => it.photo ? `<img src="${it.photo}" alt="">` : esc(it.emoji);
+
 function render() {
   const items = state.items.map(it => ({ it, ...info(it) })).sort((a, b) => a.left - b.left);
+  const soon = items.filter(isSoon);
+  $('summary').textContent = `${plural(items.length, 'item')} · ${soon.length ? `${soon.length} to eat soon` : 'nothing urgent'}`;
 
-  const soon = items.filter(x => x.it.loc !== 'freezer' && x.left <= 2).length;
-  $('summary').textContent = `${plural(items.length, 'item')} · ${soon ? `${soon} to eat soon` : 'nothing urgent'}`;
+  const n = f => items.filter(x => f === 'all' ? true : f === 'soon' ? isSoon(x) : f === 'freezer' ? x.it.loc === 'freezer' : x.it.cat === f).length;
+  const chips = [['all', 'All'], ['soon', '⏰ Eat soon'], ...CATS.map(c => [c.key, `${c.emoji} ${c.label}`]), ['freezer', '❄ Freezer']];
+  $('chips').innerHTML = chips.map(([k, l]) =>
+    `<button class="chip ${k === 'soon' ? 'soon' : ''}" data-f="${k}" aria-pressed="${filter === k}">${l} ${n(k)}</button>`).join('');
 
-  const counts = { all: items.length, fridge: 0, freezer: 0, counter: 0 };
-  items.forEach(x => counts[x.it.loc]++);
-  $('tabs').innerHTML = [['all', 'All'], ['fridge', 'Fridge'], ['freezer', 'Freezer'], ['counter', 'Counter']]
-    .map(([k, l]) => `<button class="tab" data-tab="${k}" aria-pressed="${tab === k}">${l} (${counts[k]})</button>`).join('');
-
-  const shown = items.filter(x => tab === 'all' || x.it.loc === tab);
   let html = '';
-  if (tab === 'all') {
-    const urgent = shown.filter(x => x.it.loc !== 'freezer' && x.left <= 2);
-    const rest = shown.filter(x => !urgent.includes(x));
-    if (urgent.length) html += `<h2>Eat these first</h2>` + urgent.map(card).join('');
-    if (rest.length) html += `<h2>${urgent.length ? 'Everything else' : 'Everything'}</h2>` + rest.map(card).join('');
+  if (filter === 'all') {
+    if (soon.length) html += `<h2>⏰ Eat these first <span>(${soon.length})</span></h2><div class="grid">${soon.map(tile).join('')}</div>`;
+    for (const c of CATS) {
+      const g = items.filter(x => x.it.cat === c.key && !isSoon(x));
+      if (g.length) html += `<h2>${c.emoji} ${c.label} <span>(${g.length})</span></h2><div class="grid">${g.map(tile).join('')}</div>`;
+    }
   } else {
-    html = shown.map(card).join('');
+    const shown = items.filter(x => filter === 'soon' ? isSoon(x) : filter === 'freezer' ? x.it.loc === 'freezer' : x.it.cat === filter);
+    if (shown.length) html = `<div class="grid">${shown.map(tile).join('')}</div>`;
   }
-  $('list').innerHTML = html || `<div class="empty">Nothing here. Tap + to add something.</div>`;
+  $('list').innerHTML = html || `<div class="empty">Nothing here.<br>Tap + to add something.</div>`;
   $('stats').textContent = (state.used || state.tossed) ? `Finished: ${state.used} · Tossed: ${state.tossed}` : '';
+  if ($('sheet').open && openId) renderSheet();
 }
 
-function card({ it, age, left, level, label }) {
+function tile(x) {
+  const { it, level, short } = x;
+  const half = it.amt < 1 ? `<span class="amtlab">${amtLabel(it.amt)}</span>` : '';
   const qty = it.qty > 1 ? ` ×${it.qty}` : '';
-  const zh = it.zh ? `<small>${esc(it.zh)}</small>` : '';
-  const note = it.note ? ` · ${esc(it.note)}` : '';
-  const freeze = it.loc !== 'freezer' && left <= 2 && left >= -1
-    ? `<button class="btn" data-act="freeze" data-id="${it.id}">Freeze it</button>` : '';
-  return `<div class="item ${level}">
-    <div class="top">
-      <div class="info">
-        <div class="name">${esc(it.name)}${qty} ${zh}</div>
-        <div class="meta">${LOC[it.loc]} · ${ageText(age)}${note}</div>
+  return `<button class="tile ${level === 'ok' || level === 'cold' ? '' : level}" data-id="${it.id}">
+    <div class="thumb">${thumbHTML(it)}<span class="badge ${level}">${short}</span>${half}</div>
+    <div class="tinfo"><div class="tname">${esc(it.name)}${qty}</div>
+      <div class="bar"><i style="width:${Math.round(it.amt * 100)}%"></i></div></div>
+  </button>`;
+}
+
+// ---------- detail sheet ----------
+let openId = null;
+function openSheet(id) { openId = id; renderSheet(); $('sheet').showModal(); }
+function renderSheet() {
+  const it = state.items.find(i => i.id === openId);
+  if (!it) { $('sheet').close(); return; }
+  const { age, left, level, label } = info(it);
+  const freeze = it.loc !== 'freezer' && left <= 3 && left >= -1;
+  $('sheetBody').innerHTML = `
+    <div class="shead">
+      <div class="thumb">${thumbHTML(it)}</div>
+      <div>
+        <div class="sname">${esc(it.name)}${it.qty > 1 ? ` ×${it.qty}` : ''}</div>
+        ${it.zh ? `<div class="meta">${esc(it.zh)}</div>` : ''}
+        <div class="meta">${CAT[it.cat].emoji} ${CAT[it.cat].label} · ${LOC[it.loc]} · ${ageText(age)}${it.note ? ' · ' + esc(it.note) : ''}</div>
+        <span class="badge big ${level}">${label}</span>
       </div>
-      <span class="badge ${level}">${label}</span>
+    </div>
+    <div>
+      <div class="lab">How much is left?</div>
+      <div class="amts">${AMTS.map(a => `<button data-amt="${a.v}" aria-pressed="${it.amt === a.v}">${a.label}</button>`).join('')}</div>
     </div>
     <div class="row">
-      ${freeze}
-      <button class="btn primary" data-act="used" data-id="${it.id}">Used up</button>
-      <button class="btn" data-act="edit" data-id="${it.id}">Edit</button>
-      <button class="btn danger" data-act="toss" data-id="${it.id}">Toss</button>
-    </div>
-  </div>`;
+      <button class="btn primary" data-sact="used">✓ Used up</button>
+      ${freeze ? '<button class="btn" data-sact="freeze">❄ Freeze it</button>' : ''}
+      <button class="btn" data-sact="edit">Edit</button>
+      <button class="btn danger" data-sact="toss">Toss</button>
+      <button class="btn" data-sact="close" style="margin-left:auto">Close</button>
+    </div>`;
 }
+$('sheetBody').onclick = e => {
+  const it = state.items.find(i => i.id === openId); if (!it) return;
+  const a = e.target.closest('[data-amt]');
+  if (a) { it.amt = +a.dataset.amt; save(); $('sheet').close(); render(); toast(`${it.name}: ${amtLabel(it.amt)}`); return; }
+  const b = e.target.closest('[data-sact]'); if (!b) return;
+  const act = b.dataset.sact;
+  $('sheet').close();
+  if (act === 'used') remove(it.id, 'used');
+  else if (act === 'toss') remove(it.id, 'tossed');
+  else if (act === 'edit') openForm(it.id);
+  else if (act === 'freeze') {
+    it.loc = 'freezer'; it.bought = isoDate(new Date()); it.shelf = 90;
+    save(); render(); toast(`${it.name} moved to the freezer (90 days from today)`);
+  }
+};
+$('sheet').addEventListener('click', e => { if (e.target === $('sheet')) $('sheet').close(); }); // tap backdrop
+$('list').onclick = e => { const t = e.target.closest('[data-id]'); if (t) openSheet(t.dataset.id); };
+$('chips').onclick = e => { const b = e.target.closest('[data-f]'); if (b) { filter = b.dataset.f; render(); } };
 
-// ---------- actions ----------
+// ---------- remove / undo ----------
 let toastTimer;
 function toast(msg, undo) {
   $('toastMsg').textContent = msg;
@@ -294,37 +423,30 @@ $('toastUndo').onclick = () => {
   save(); render();
 };
 
-$('tabs').onclick = e => {
-  const b = e.target.closest('[data-tab]'); if (!b) return;
-  tab = b.dataset.tab; render();
-};
-$('list').onclick = e => {
-  const b = e.target.closest('[data-act]'); if (!b) return;
-  const id = b.dataset.id, act = b.dataset.act;
-  if (act === 'used') remove(id, 'used');
-  else if (act === 'toss') remove(id, 'tossed');
-  else if (act === 'edit') openForm(id);
-  else if (act === 'freeze') {
-    const it = state.items.find(i => i.id === id);
-    it.loc = 'freezer'; it.bought = isoDate(new Date()); it.shelf = 90;
-    save(); render(); toast(`${it.name} moved to the freezer (90 days from today)`);
-  }
-};
-
 // ---------- add / edit form ----------
-let shelfTouched = false, locTouched = false;
+let shelfTouched, locTouched, catTouched, emojiTouched, formPhoto;
+$('fCat').innerHTML = CATS.map(c => `<option value="${c.key}">${c.emoji} ${c.label}</option>`).join('');
+
+function updateThumb() {
+  $('fThumb').innerHTML = formPhoto ? `<img src="${formPhoto}" alt="">` : esc($('fEmoji').value || '🛒');
+  $('fPhotoClear').hidden = !formPhoto;
+}
 function openForm(id) {
   editingId = id || null;
   const it = id ? state.items.find(i => i.id === id) : null;
   $('dlgTitle').textContent = it ? 'Edit item' : 'Add item';
   $('fName').value = it?.name ?? '';
   $('fZh').value = it?.zh ?? '';
+  $('fCat').value = it?.cat ?? 'other';
   $('fLoc').value = it?.loc ?? 'fridge';
+  $('fEmoji').value = it?.emoji ?? '🛒';
   $('fQty').value = it?.qty ?? 1;
   $('fBought').value = it?.bought ?? isoDate(new Date());
   $('fShelf').value = it?.shelf ?? '';
   $('fNote').value = it?.note ?? '';
-  shelfTouched = locTouched = !!it;
+  formPhoto = it?.photo || null;
+  shelfTouched = locTouched = catTouched = emojiTouched = !!it;
+  updateThumb();
   $('dlg').showModal();
   $('fName').focus();
 }
@@ -332,20 +454,42 @@ $('addBtn').onclick = () => openForm();
 $('cancelBtn').onclick = () => $('dlg').close();
 $('fShelf').oninput = () => shelfTouched = true;
 $('fLoc').onchange = () => locTouched = true;
+$('fCat').onchange = () => { catTouched = true; if (!emojiTouched) { $('fEmoji').value = guessEmoji($('fName').value, $('fCat').value); updateThumb(); } };
+$('fEmoji').oninput = () => { emojiTouched = true; updateThumb(); };
 $('fName').oninput = () => {
-  const g = guess($('fName').value);
-  if (!g) return;
-  if (!shelfTouched) $('fShelf').value = g.days;
-  if (!locTouched) $('fLoc').value = g.loc;
+  const name = $('fName').value;
+  const g = guess(name);
+  if (g && !shelfTouched) $('fShelf').value = g.days;
+  if (g && !locTouched) $('fLoc').value = g.loc;
+  if (!catTouched) $('fCat').value = guessCat(name);
+  if (!emojiTouched) { $('fEmoji').value = guessEmoji(name, $('fCat').value); updateThumb(); }
+};
+$('fPhotoClear').onclick = () => { formPhoto = null; updateThumb(); };
+$('fPhoto').onchange = e => {   // shrink to a small square so storage stays tiny
+  const f = e.target.files[0]; if (!f) return;
+  const img = new Image();
+  img.onload = () => {
+    const S = 160, c = document.createElement('canvas'); c.width = c.height = S;
+    const m = Math.min(img.width, img.height);
+    c.getContext('2d').drawImage(img, (img.width - m) / 2, (img.height - m) / 2, m, m, 0, 0, S, S);
+    formPhoto = c.toDataURL('image/jpeg', 0.75);
+    URL.revokeObjectURL(img.src); updateThumb();
+  };
+  img.src = URL.createObjectURL(f);
+  e.target.value = '';
 };
 $('form').onsubmit = () => {
   const data = {
-    name: $('fName').value.trim(), zh: $('fZh').value.trim(), loc: $('fLoc').value,
+    name: $('fName').value.trim(), zh: $('fZh').value.trim(), cat: $('fCat').value, loc: $('fLoc').value,
+    emoji: $('fEmoji').value.trim() || CAT[$('fCat').value].emoji, photo: formPhoto || undefined,
     qty: Math.max(1, +$('fQty').value || 1), bought: $('fBought').value,
     shelf: Math.max(1, +$('fShelf').value || 1), note: $('fNote').value.trim(),
   };
-  if (editingId) Object.assign(state.items.find(i => i.id === editingId), data);
-  else state.items.push({ id: uid(), ...data });
+  if (editingId) {
+    const it = state.items.find(i => i.id === editingId);
+    Object.assign(it, data);
+    if (!data.photo) delete it.photo;
+  } else state.items.push({ id: uid(), amt: 1, ...data });
   save(); render();
 };
 
@@ -362,7 +506,7 @@ $('importFile').onchange = async e => {
   try {
     const s = JSON.parse(await f.text());
     if (!Array.isArray(s.items)) throw 0;
-    state = { items: s.items, used: s.used || 0, tossed: s.tossed || 0 };
+    state = migrate({ items: s.items, used: s.used || 0, tossed: s.tossed || 0 });
     save(); render(); toast('Backup imported');
   } catch (err) { toast('That file is not a My Fridge backup'); }
   e.target.value = '';

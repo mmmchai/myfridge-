@@ -1,5 +1,5 @@
 // Cache the app shell so My Fridge opens offline. Item data lives in localStorage.
-const CACHE = 'myfridge-v1';
+const CACHE = 'myfridge-v2';
 const SHELL = ['./', './index.html', './manifest.webmanifest'];
 
 self.addEventListener('install', e => e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL))));
