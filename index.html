@@ -35,6 +35,9 @@
   h2 span { font-weight: 400; }
   button { font: inherit; cursor: pointer; color: inherit; }
 
+  .searchbox { width: 100%; padding: 10px 12px; border-radius: 10px; margin-bottom: 8px; font-size: 1rem; }
+  .reviewbar { width: 100%; border: 1px solid var(--bad); background: var(--bad-bg); color: var(--bad); border-radius: 10px;
+    padding: 9px 12px; margin-bottom: 8px; font-weight: 600; text-align: left; }
   .chips { display: flex; gap: 6px; overflow-x: auto; padding: 2px 0 8px; position: sticky; top: 0; background: var(--bg); z-index: 2; scrollbar-width: none; }
   .chips::-webkit-scrollbar { display: none; }
   .chip { border: 1px solid var(--line); background: var(--card); border-radius: 999px; padding: 6px 12px; font-size: .88rem; white-space: nowrap; }
@@ -97,6 +100,8 @@
 <main>
   <h1>🥬 My Fridge</h1>
   <div class="sub" id="summary"></div>
+  <input type="search" class="searchbox" id="search" placeholder="🔍 Search your food (name, 中文, note…)" autocomplete="off">
+  <button class="reviewbar" id="reviewBar" hidden></button>
   <div class="chips" id="chips"></div>
   <div id="list"></div>
 
@@ -114,6 +119,9 @@
 
 <!-- tap a tile: how much is left + quick actions -->
 <dialog id="sheet"><div class="sheet" id="sheetBody"></div></dialog>
+
+<!-- "is this still in the fridge?" check for past-date items -->
+<dialog id="review"><div class="sheet" id="reviewBody"></div></dialog>
 
 <!-- add / edit -->
 <dialog id="dlg">
@@ -271,6 +279,7 @@ function sampleItems() {
 const KEY = 'myfridge.v1';
 let state = load();
 let filter = 'all';
+let query = '';
 let editingId = null;
 let lastRemoved = null;
 
@@ -321,8 +330,19 @@ function render() {
   $('chips').innerHTML = chips.map(([k, l]) =>
     `<button class="chip ${k === 'soon' ? 'soon' : ''}" data-f="${k}" aria-pressed="${filter === k}">${l} ${n(k)}</button>`).join('');
 
+  const past = items.filter(x => x.left < 0).length;
+  $('reviewBar').hidden = !past;
+  $('reviewBar').textContent = `⚠ ${plural(past, 'item')} past the date — is ${past === 1 ? 'it' : 'any'} still in the fridge? Tap to check`;
+
   let html = '';
-  if (filter === 'all') {
+  const q = query.trim().toLowerCase();
+  if (q) {
+    const hit = x => [x.it.name, x.it.zh, x.it.note, CAT[x.it.cat].label, LOC[x.it.loc]].join(' ').toLowerCase().includes(q);
+    const shown = items.filter(hit);
+    html = shown.length
+      ? `<h2>Results <span>(${shown.length})</span></h2><div class="grid">${shown.map(tile).join('')}</div>`
+      : `<div class="empty">No "${esc(query.trim())}" in your fridge.<br>Tap + to add it.</div>`;
+  } else if (filter === 'all') {
     if (soon.length) html += `<h2>⏰ Eat these first <span>(${soon.length})</span></h2><div class="grid">${soon.map(tile).join('')}</div>`;
     for (const c of CATS) {
       const g = items.filter(x => x.it.cat === c.key && !isSoon(x));
@@ -333,6 +353,7 @@ function render() {
     if (shown.length) html = `<div class="grid">${shown.map(tile).join('')}</div>`;
   }
   $('list').innerHTML = html || `<div class="empty">Nothing here.<br>Tap + to add something.</div>`;
+  $('chips').style.opacity = q ? .4 : 1;
   $('stats').textContent = (state.used || state.tossed) ? `Finished: ${state.used} · Tossed: ${state.tossed}` : '';
   if ($('sheet').open && openId) renderSheet();
 }
@@ -396,6 +417,53 @@ $('sheetBody').onclick = e => {
 $('sheet').addEventListener('click', e => { if (e.target === $('sheet')) $('sheet').close(); }); // tap backdrop
 $('list').onclick = e => { const t = e.target.closest('[data-id]'); if (t) openSheet(t.dataset.id); };
 $('chips').onclick = e => { const b = e.target.closest('[data-f]'); if (b) { filter = b.dataset.f; render(); } };
+
+$('search').oninput = e => { query = e.target.value; render(); };
+
+// ---------- past-date check ----------
+let reviewQueue = [];
+function startReview(auto) {
+  const today = isoDate(new Date());
+  reviewQueue = state.items.filter(it => info(it).left < 0 && !(auto && it.askedOn === today)).map(it => it.id);
+  if (reviewQueue.length) { renderReview(0, reviewQueue.length); if (!$('review').open) $('review').showModal(); }
+}
+function renderReview(done, total) {
+  let it;
+  while (reviewQueue.length && !(it = state.items.find(i => i.id === reviewQueue[0]))) reviewQueue.shift();
+  if (!it) { $('review').close(); return; }
+  const { age, label } = info(it);
+  $('reviewBody').innerHTML = `
+    <div class="lab">Past-date check · ${done + 1} of ${total}</div>
+    <div class="shead">
+      <div class="thumb">${thumbHTML(it)}</div>
+      <div>
+        <div class="sname">${esc(it.name)}${it.zh ? ` <span class="meta">${esc(it.zh)}</span>` : ''}</div>
+        <div class="meta">${LOC[it.loc]} · ${ageText(age)} · ${amtLabel(it.amt)}</div>
+        <span class="badge big bad">${label}</span>
+      </div>
+    </div>
+    <div class="sname" style="font-size:1rem">Is this still in your ${it.loc === 'counter' ? 'kitchen' : it.loc}?</div>
+    <div class="row">
+      <button class="btn primary" data-r="keep">Yes, still have it</button>
+      <button class="btn" data-r="used">Used it up</button>
+      <button class="btn danger" data-r="toss">Tossed it</button>
+    </div>
+    <button class="btn" data-r="later">Ask me later</button>`;
+  $('reviewBody').dataset.done = done; $('reviewBody').dataset.total = total;
+}
+$('reviewBody').onclick = e => {
+  const b = e.target.closest('[data-r]'); if (!b) return;
+  const id = reviewQueue.shift(), r = b.dataset.r;
+  const done = +$('reviewBody').dataset.done + 1, total = +$('reviewBody').dataset.total;
+  const it = state.items.find(i => i.id === id);
+  if (it && r === 'keep') { it.askedOn = isoDate(new Date()); save(); }   // ask again tomorrow
+  else if (it && r === 'used') remove(id, 'used');
+  else if (it && r === 'toss') remove(id, 'tossed');
+  render();
+  if (reviewQueue.length) renderReview(done, total);
+  else { $('review').close(); toast('Past-date check done'); }
+};
+$('reviewBar').onclick = () => startReview(false);
 
 // ---------- remove / undo ----------
 let toastTimer;
@@ -518,6 +586,7 @@ $('resetBtn').onclick = () => {
 };
 
 render();
+startReview(true);   // on open: ask about anything past its date
 setInterval(render, 60 * 60 * 1000); // refresh day counts if the tab stays open
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 </script>
